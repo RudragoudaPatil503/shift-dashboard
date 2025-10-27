@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+import pytz
 
 # -------------------------
 # Page settings
@@ -22,12 +23,14 @@ st.sidebar.markdown("**Instructions:**")
 st.sidebar.markdown(
     "- 🟢 Green rows = currently on shift\n"
     "- 🟠 Orange rows = next upcoming employee\n"
-    "- Data updates automatically based on Excel file and current time"
+    "- Data updates automatically based on Excel file and current IST time"
 )
 st.sidebar.markdown("---")
 
-# Live clock
-st.sidebar.markdown(f"### ⏰ Current Time: {datetime.now().strftime('%H:%M:%S')}")
+# Live clock in IST
+india_tz = pytz.timezone("Asia/Kolkata")
+now = datetime.now(india_tz)
+st.sidebar.markdown(f"### ⏰ Current Time (IST): {now.strftime('%H:%M:%S')}")
 
 # -------------------------
 # Header
@@ -62,13 +65,15 @@ df = df.dropna(subset=['Shift Start', 'Shift End'])
 # Determine current and upcoming
 # -------------------------
 def is_on_shift(start, end, current_time):
-    if start < end:
-        return start <= current_time <= end
-    else:  # overnight shift
-        return current_time >= start or current_time <= end
+    try:
+        if start < end:
+            return start <= current_time <= end
+        else:  # overnight shift
+            return current_time >= start or current_time <= end
+    except:
+        return False  # in case start or end is None
 
-now = datetime.now().time()
-df['Currently On Shift'] = df.apply(lambda x: is_on_shift(x['Shift Start'], x['Shift End'], now), axis=1)
+df['Currently On Shift'] = df.apply(lambda x: is_on_shift(x['Shift Start'], x['Shift End'], now.time()), axis=1)
 
 # Currently on shift employees
 current_employees = df[df['Currently On Shift']]
@@ -108,4 +113,4 @@ else:
 # Footer
 # -------------------------
 st.markdown("---")
-st.caption("🔄 Dashboard updates automatically based on current time and Excel data.")
+st.caption("🔄 Dashboard updates automatically based on current IST time and Excel data.")
