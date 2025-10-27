@@ -53,6 +53,21 @@ except Exception as e:
     st.stop()
 
 # -------------------------
+# Clean column names
+# -------------------------
+df.columns = df.columns.str.strip()
+df.rename(columns=lambda x: x.strip(), inplace=True)
+
+# Optional: show columns for debugging
+# st.write("Columns detected:", df.columns.tolist())
+
+required_columns = ['Name', 'Shift Start', 'Shift End', 'Status']
+for col in required_columns:
+    if col not in df.columns:
+        st.error(f"❌ Required column '{col}' is missing in Excel file.")
+        st.stop()
+
+# -------------------------
 # Convert times safely
 # -------------------------
 df['Shift Start'] = pd.to_datetime(df['Shift Start'], errors='coerce').dt.time
@@ -78,8 +93,10 @@ df['Currently On Shift'] = df.apply(lambda x: is_on_shift(x['Shift Start'], x['S
 # Currently on shift employees
 current_employees = df[df['Currently On Shift']]
 
-# Next upcoming employee
-upcoming_employees = df[~df['Currently On Shift']].sort_values(by='Shift Start').head(1)
+# Next upcoming employee safely
+upcoming_employees = pd.DataFrame()
+if 'Shift Start' in df.columns:
+    upcoming_employees = df[~df['Currently On Shift']].sort_values(by='Shift Start').head(1)
 
 # -------------------------
 # Display Current Employees
