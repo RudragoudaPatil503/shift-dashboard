@@ -22,4 +22,5 @@ if status != "All":
 # Display the table
 st.dataframe(df, use_container_width=True)
 
-st.caption("🔄 Data
+# ✅ Corrected caption (no line breaks inside string)
+st.caption("🔄 Data automatically updates whenever Excel file is updated on GitHub.")
