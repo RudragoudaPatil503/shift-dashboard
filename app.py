@@ -53,7 +53,7 @@ except Exception as e:
     st.stop()
 
 # -------------------------
-# Clean column names and map to standard names
+# Clean column names
 # -------------------------
 df.columns = df.columns.str.strip().str.replace('\n','').str.replace('\r','')
 
@@ -69,7 +69,6 @@ if missing_cols:
     st.error(f"❌ Required column(s) missing in Excel: {missing_cols}")
     st.stop()
 
-# Rename to standard names
 df = df.rename(columns={v:k for k,v in expected_columns.items()})
 
 # -------------------------
@@ -93,11 +92,19 @@ def is_on_shift(start, end, current_time):
 
 df['Currently On Shift'] = df.apply(lambda x: is_on_shift(x['Shift Start'], x['Shift End'], now.time()), axis=1)
 
+# Currently on shift employees
 current_employees = df[df['Currently On Shift']]
 
-upcoming_employees = pd.DataFrame()
-if 'Shift Start' in df.columns:
-    upcoming_employees = df[~df['Currently On Shift']].sort_values(by='Shift Start').head(1)
+# Next upcoming employee safely
+remaining_shifts = df.loc[~df['Currently On Shift']]
+if 'Shift Start' in remaining_shifts.columns and not remaining_shifts.empty:
+    remaining_shifts = remaining_shifts.dropna(subset=['Shift Start'])
+    if not remaining_shifts.empty:
+        upcoming_employees = remaining_shifts.sort_values(by='Shift Start').head(1)
+    else:
+        upcoming_employees = pd.DataFrame()
+else:
+    upcoming_employees = pd.DataFrame()
 
 # -------------------------
 # Display Current Employees
