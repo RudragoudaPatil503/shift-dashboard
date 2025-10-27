@@ -50,11 +50,13 @@ except Exception as e:
     st.stop()
 
 # -------------------------
-# Convert times
+# Convert times safely
 # -------------------------
-df['Shift Start'] = pd.to_datetime(df['Shift Start'], format='%H:%M').dt.time
-df['Shift End'] = pd.to_datetime(df['Shift End'], format='%H:%M').dt.time
-now = datetime.now().time()
+df['Shift Start'] = pd.to_datetime(df['Shift Start'], errors='coerce').dt.time
+df['Shift End'] = pd.to_datetime(df['Shift End'], errors='coerce').dt.time
+
+# Remove rows with invalid or missing times
+df = df.dropna(subset=['Shift Start', 'Shift End'])
 
 # -------------------------
 # Determine current and upcoming
@@ -65,6 +67,7 @@ def is_on_shift(start, end, current_time):
     else:  # overnight shift
         return current_time >= start or current_time <= end
 
+now = datetime.now().time()
 df['Currently On Shift'] = df.apply(lambda x: is_on_shift(x['Shift Start'], x['Shift End'], now), axis=1)
 
 # Currently on shift employees
