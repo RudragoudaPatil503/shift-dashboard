@@ -12,11 +12,29 @@ st.set_page_config(
 )
 
 # -------------------------
-# Company Logo
+# Sidebar
 # -------------------------
-logo_url = "https://raw.githubusercontent.com/RudragoudaPatil503/shift-dashboard/main/logo.png"
-st.image(logo_url, width=180)
+st.sidebar.image(
+    "https://raw.githubusercontent.com/RudragoudaPatil503/shift-dashboard/main/team_logo.png", width=150
+)
+st.sidebar.markdown("## 🛠 Support Team Dashboard")
+st.sidebar.markdown("**Instructions:**")
+st.sidebar.markdown(
+    "- 🟢 Green rows = currently on shift\n"
+    "- 🟠 Orange rows = next upcoming employee\n"
+    "- Data updates automatically based on Excel file and current time"
+)
+st.sidebar.markdown("---")
 
+# Live clock
+st.sidebar.markdown(f"### ⏰ Current Time: {datetime.now().strftime('%H:%M:%S')}")
+
+# -------------------------
+# Header
+# -------------------------
+st.image(
+    "https://raw.githubusercontent.com/RudragoudaPatil503/shift-dashboard/main/team_logo.png", width=180
+)
 st.markdown("<h1 style='text-align: center; color: #003366;'>Employee Shift Dashboard</h1>", unsafe_allow_html=True)
 st.markdown("---")  # horizontal line
 
@@ -44,12 +62,15 @@ now = datetime.now().time()
 def is_on_shift(start, end, current_time):
     if start < end:
         return start <= current_time <= end
-    else:
-        # Overnight shift
+    else:  # overnight shift
         return current_time >= start or current_time <= end
 
 df['Currently On Shift'] = df.apply(lambda x: is_on_shift(x['Shift Start'], x['Shift End'], now), axis=1)
+
+# Currently on shift employees
 current_employees = df[df['Currently On Shift']]
+
+# Next upcoming employee
 upcoming_employees = df[~df['Currently On Shift']].sort_values(by='Shift Start').head(1)
 
 # -------------------------
