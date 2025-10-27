@@ -53,28 +53,31 @@ except Exception as e:
     st.stop()
 
 # -------------------------
-# Clean column names
+# Clean column names and map to standard names
 # -------------------------
-df.columns = df.columns.str.strip()
-df.rename(columns=lambda x: x.strip(), inplace=True)
+df.columns = df.columns.str.strip().str.replace('\n','').str.replace('\r','')
 
-# Optional: show columns for debugging
-# st.write("Columns detected:", df.columns.tolist())
+expected_columns = {'Name': None, 'Shift Start': None, 'Shift End': None, 'Status': None}
 
-required_columns = ['Name', 'Shift Start', 'Shift End', 'Status']
-for col in required_columns:
-    if col not in df.columns:
-        st.error(f"❌ Required column '{col}' is missing in Excel file.")
-        st.stop()
+for col in df.columns:
+    for key in expected_columns:
+        if key.lower() == col.lower():
+            expected_columns[key] = col
+
+missing_cols = [k for k,v in expected_columns.items() if v is None]
+if missing_cols:
+    st.error(f"❌ Required column(s) missing in Excel: {missing_cols}")
+    st.stop()
+
+# Rename to standard names
+df = df.rename(columns={v:k for k,v in expected_columns.items()})
 
 # -------------------------
 # Convert times safely
 # -------------------------
 df['Shift Start'] = pd.to_datetime(df['Shift Start'], errors='coerce').dt.time
 df['Shift End'] = pd.to_datetime(df['Shift End'], errors='coerce').dt.time
-
-# Remove rows with invalid or missing times
-df = df.dropna(subset=['Shift Start', 'Shift End'])
+df = df.dropna(subset=['Shift Start','Shift End'])
 
 # -------------------------
 # Determine current and upcoming
@@ -86,14 +89,12 @@ def is_on_shift(start, end, current_time):
         else:  # overnight shift
             return current_time >= start or current_time <= end
     except:
-        return False  # in case start or end is None
+        return False
 
 df['Currently On Shift'] = df.apply(lambda x: is_on_shift(x['Shift Start'], x['Shift End'], now.time()), axis=1)
 
-# Currently on shift employees
 current_employees = df[df['Currently On Shift']]
 
-# Next upcoming employee safely
 upcoming_employees = pd.DataFrame()
 if 'Shift Start' in df.columns:
     upcoming_employees = df[~df['Currently On Shift']].sort_values(by='Shift Start').head(1)
@@ -104,7 +105,7 @@ if 'Shift Start' in df.columns:
 st.subheader("🟢 Currently Available Employees")
 if not current_employees.empty:
     st.dataframe(
-        current_employees[['Name', 'Shift Start', 'Shift End', 'Status']].style.apply(
+        current_employees[['Name','Shift Start','Shift End','Status']].style.apply(
             lambda x: ['background-color: #90EE90' for _ in x], axis=1
         ),
         use_container_width=True
@@ -118,7 +119,7 @@ else:
 st.subheader("⏳ Next Upcoming Employee")
 if not upcoming_employees.empty:
     st.dataframe(
-        upcoming_employees[['Name', 'Shift Start', 'Shift End', 'Status']].style.apply(
+        upcoming_employees[['Name','Shift Start','Shift End','Status']].style.apply(
             lambda x: ['background-color: #FFA500' for _ in x], axis=1
         ),
         use_container_width=True
